@@ -9,11 +9,11 @@ public class PlayerController : MonoBehaviour
     /// <summary>ターンの速さ</summary>
     [SerializeField] float m_turnSpeed = 3f;
     /// <summary>ジャンプ力</summary>
-    [SerializeField] float m_jumpPower = 5f;
+    [SerializeField] float m_jumpPower = 7f;
     /// <summary>接地判定の際、中心 (Pivot) からどれくらいの距離を「接地している」と判定するかの長さ</summary>
-    [SerializeField] float m_isGroundedLength = 1.1f;
+    [SerializeField] float m_isGroundedLength = 0.1f;
 
-    //Animator m_anim = null;
+    Animator m_anim = null;
     Rigidbody m_rb = null;
 
     bool m_jumpJudge = true;
@@ -22,14 +22,15 @@ public class PlayerController : MonoBehaviour
     GameObject switchObject;
     Transform redPlatform;
     Transform bluePlatform;
-    Vector3 reSpawnPoint = new Vector3(0, 1f, 0);
+    Vector3 reSpawnPoint;
     void Start()
     {
         m_rb = GetComponent<Rigidbody>();
-        //m_anim = GetComponent<Animator>();
-        switchObject = GameObject.Find("JumpSwitchPlatform");
-        redPlatform = switchObject.transform.Find("RedPlatforms");
-        bluePlatform = switchObject.transform.Find("BluePlatforms");
+        m_anim = GetComponent<Animator>();
+        switchObject = GameObject.Find("JumpSwitchManager");
+        redPlatform = switchObject.transform.Find("Red");
+        bluePlatform = switchObject.transform.Find("Blue");
+        reSpawnPoint = Vector3.up;
     }
 
     void Update()
@@ -65,7 +66,7 @@ public class PlayerController : MonoBehaviour
         if (Input.GetButtonDown("Jump") && IsGrounded())
         {
             m_rb.AddForce(Vector3.up * m_jumpPower, ForceMode.Impulse);
-            //m_anim.SetTrigger("Jump");
+            m_anim.SetTrigger("Jump");
             JumpSwitchPlatform();
         }
     }
@@ -77,7 +78,7 @@ public class PlayerController : MonoBehaviour
         // 水平方向の速度を求めて Animator Controller のパラメーターに渡す
         Vector3 horizontalVelocity = m_rb.velocity;
         horizontalVelocity.y = 0;
-        //m_anim.SetFloat("Speed", horizontalVelocity.magnitude);
+        m_anim.SetFloat("Speed", horizontalVelocity.magnitude);
     }
 
     /// <summary>
@@ -98,13 +99,13 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     void JumpSwitchPlatform()
     {
-        if (m_jumpJudge)
+        if (m_jumpJudge) //一回目は赤がオフ、青がオンになる
         {
             redPlatform.gameObject.SetActive(false);
             bluePlatform.gameObject.SetActive(true);
             m_jumpJudge = false;
         }
-        else
+        else             //二回目は青がオフ、赤がオンになる
         {
             redPlatform.gameObject.SetActive(true);
             bluePlatform.gameObject.SetActive(false);
@@ -117,7 +118,7 @@ public class PlayerController : MonoBehaviour
     /// <param name="other"></param>
     private void OnTriggerEnter(Collider other)
     {
-        if (other.gameObject.tag == "FallGudge" || other.gameObject.tag == "BlackObject")
+        if (other.gameObject.tag == "FallJudge" || other.gameObject.tag == "BlackObject")
         {
             m_jumpJudge = true;
             redPlatform.gameObject.SetActive(true);
@@ -126,7 +127,10 @@ public class PlayerController : MonoBehaviour
             m_greenPlatformRelocation = true;
         }
     }
-
+    /// <summary>
+    /// 緑色の足場を再配置する処理
+    /// </summary>
+    /// <returns></returns>
     public bool GreenPlatformRelocation()
     {
         if (m_greenPlatformRelocation)
